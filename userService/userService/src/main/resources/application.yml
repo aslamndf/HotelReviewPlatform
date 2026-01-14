@@ -1,0 +1,95 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: USERSERVICE
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/microservices
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  config:
+    import: optional:configserver:http://localhost:8085
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://integrator-3398588.okta.com/oauth2/default
+      client:
+        registration:
+          my-internal-client:
+            provider: okta
+            authorization-grant-type: client_credentials
+            scope: internal
+            client-id: 0oaz3lh93tDPjfVOs697
+            client-secret: Ih97GKYisNXWSDphTXWxKKYZ6qW9EMdU-OO7MvJndtoMYcSwOC1IcoI8pUPy3ypc
+        provider:
+          okta:
+            issuer-uri: https://integrator-3398588.okta.com/oauth2/default
+
+
+# ===========================
+# ACTUATOR CONFIG (CRITICAL)
+# ===========================
+management:
+  endpoint:
+    health:
+      show-details: always
+
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers
+
+  health:
+    circuitbreakers:
+      enabled: true
+
+# ===========================
+# RESILIENCE4J CONFIG
+# ===========================
+resilience4j:
+  circuitbreaker:
+    instances:
+      ratingHotelBreaker:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 6s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+  retry:
+    instances:
+      ratingHotelRetry:
+        max-attempts: 3
+        wait-duration: 2s
+
+  rate-limiter:
+    instances:
+      ratingHotelRateLimiter:
+        limit-for-period: 5
+        limit-refresh-period: 10s
+        timeout-duration: 2s
+
+okta:
+  oauth2:
+    issuer: https://integrator-3398588.okta.com/oauth2/default
+    audience: api://default
+    client-id: 0oaz3lh93tDPjfVOs697
+    client-secret: Ih97GKYisNXWSDphTXWxKKYZ6qW9EMdU-OO7MvJndtoMYcSwOC1IcoI8pUPy3ypc
+    scopes: openid, profile, email, offline_access
